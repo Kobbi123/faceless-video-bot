@@ -23,7 +23,7 @@ jobs:
       - name: Install Python Packages
         run: |
           python -m pip install --upgrade pip
-          pip install moviepy gTTS imageio[ffmpeg]
+          pip install moviepy gTTS imageio[ffmpeg] requests
 
       - name: Run Generator Script
         run: python main.py
