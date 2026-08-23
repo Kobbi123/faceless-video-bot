@@ -16,11 +16,14 @@ jobs:
       - name: Install System Dependencies & ImageMagick
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg imagemagick
-          sudo sed -i 's/none/read,write/g' /etc/ImageMagick-6/policy.xml
+          sudo apt-get install -y ffmpeg imagemagick gsfonts
+          sudo sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml
+          sudo sed -i 's/@\*/\*/' /etc/ImageMagick-6/policy.xml
 
       - name: Install Python Packages
-        run: pip install moviepy gTTS imageio[ffmpeg]
+        run: |
+          python -m pip install --upgrade pip
+          pip install moviepy gTTS imageio[ffmpeg]
 
       - name: Run Generator Script
         run: python main.py
