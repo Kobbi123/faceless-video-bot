@@ -1,0 +1,7 @@
+flask
+flask-cors
+gTTS
+moviepy
+imageio[ffmpeg]
+requests
+gunicorn
