@@ -1,9 +1,11 @@
 {
   "cleanUrls": true,
+  "outputDirectory": ".",
   "rewrites": [
     {
-      "source": "/",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "excludeFiles": ["main.py", "requirements.txt"]
 }
