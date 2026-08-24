@@ -1,10 +1,8 @@
 import os
-import requests
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from gtts import gTTS
 
-# Compatibility import for MoviePy v1 and v2
 try:
     from moviepy.editor import TextClip, CompositeVideoClip, AudioFileClip, ColorClip
 except ImportError:
@@ -28,41 +26,38 @@ def generate_short():
         data = request.get_json() or {}
         prompt = data.get('prompt', 'Mind blowing fact about space.')
 
-        # 1. Generate Audio via gTTS
+        # 1. Generate Speech
         audio_filename = "speech.mp3"
         audio_path = os.path.join(OUTPUT_DIR, audio_filename)
         tts = gTTS(text=prompt, lang='en', slow=False)
         tts.save(audio_path)
 
-        # 2. Setup Audio Clip & Duration
+        # 2. Audio Setup
         audio_clip = AudioFileClip(audio_path)
         duration = audio_clip.duration
 
-        # 3. Create Vertical Background (9:16 aspect ratio)
+        # 3. Canvas Setup (9:16 vertical aspect ratio)
         bg_clip = ColorClip(size=(720, 1280), color=(15, 23, 42), duration=duration)
 
-        # 4. Burn Text/Captions (v1/v2 method fallback)
+        # 4. Universal MoviePy v1/v2 Text Renderer
         try:
             txt_clip = TextClip(
                 prompt,
                 fontsize=40,
                 color='yellow',
-                font='Helvetica-Bold',
                 method='caption',
                 size=(620, None)
-            )
-            txt_clip = txt_clip.set_position('center').set_duration(duration)
-        except AttributeError:
+            ).set_position('center').set_duration(duration)
+        except Exception:
             txt_clip = TextClip(
                 text=prompt,
                 font_size=40,
                 color='yellow',
                 method='caption',
                 size=(620, None)
-            )
-            txt_clip = txt_clip.with_position('center').with_duration(duration)
+            ).with_position('center').with_duration(duration)
 
-        # 5. Composite Video & Add Audio
+        # 5. Composite Final Output
         try:
             final_video = CompositeVideoClip([bg_clip, txt_clip]).set_audio(audio_clip)
         except AttributeError:
