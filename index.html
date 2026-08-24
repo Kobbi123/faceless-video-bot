@@ -1,202 +1,93 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AutoShorts AI - Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoShorts Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex font-sans">
+<body class="bg-slate-950 text-slate-100 min-h-screen p-4 md:p-8">
+  <div class="max-w-3xl mx-auto space-y-6">
+    
+    <!-- Header & Config -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900 p-6 rounded-2xl border border-slate-800">
+      <div>
+        <h1 class="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">AutoShorts Studio</h1>
+        <p class="text-sm text-slate-400">Automate your faceless viral videos 🚀</p>
+      </div>
+      <div class="w-full md:w-auto">
+        <label class="block text-xs text-slate-400 mb-1">Render Server URL</label>
+        <input id="serverUrl" type="text" value="https://autoshorts-backend-8m5z.onrender.com" class="w-full md:w-80 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
+      </div>
+    </div>
 
-    <!-- Left Sidebar -->
-    <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between p-4 hidden md:flex">
-        <div class="space-y-6">
-            <!-- Logo -->
-            <div class="flex items-center gap-3 px-2">
-                <div class="bg-indigo-600 p-2 rounded-xl text-white font-bold text-lg">⚡</div>
-                <h1 class="text-xl font-bold tracking-tight">AutoShorts<span class="text-indigo-500">.ai</span></h1>
-            </div>
+    <!-- Generator Form -->
+    <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-300 mb-2">Video Topic / Script Prompt</label>
+        <textarea id="promptInput" rows="3" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-slate-100 focus:outline-none focus:border-purple-500" placeholder="e.g. 3 mind-blowing facts about space..."></textarea>
+      </div>
 
-            <!-- Navigation Links -->
-            <nav class="space-y-1">
-                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white transition">
-                    <i class="fa-solid fa-list-ul w-5"></i> <span class="text-sm font-medium">Series</span>
-                </a>
-                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white transition">
-                    <i class="fa-solid fa-eye w-5"></i> <span class="text-sm font-medium">View</span>
-                </a>
-                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-indigo-600/10 text-indigo-400 font-semibold border border-indigo-500/20">
-                    <i class="fa-solid fa-plus w-5"></i> <span class="text-sm">Create</span>
-                </a>
-                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white transition">
-                    <i class="fa-solid fa-screwdriver-wrench w-5"></i> <span class="text-sm font-medium">Tools</span>
-                </a>
-                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white transition">
-                    <i class="fa-solid fa-credit-card w-5"></i> <span class="text-sm font-medium">Billing</span>
-                </a>
-            </nav>
-        </div>
+      <button id="generateBtn" onclick="generateVideo()" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2">
+        <span>✨ Generate Video Series</span>
+      </button>
+    </div>
 
-        <!-- Account Footer -->
-        <div class="border-t border-slate-800 pt-4 px-2 flex items-center gap-3">
-            <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-xs">RK</div>
-            <div class="overflow-hidden">
-                <p class="text-xs font-semibold truncate">Rabby King</p>
-                <p class="text-[10px] text-slate-500 truncate">Free Plan</p>
-            </div>
-        </div>
-    </aside>
+    <!-- Status & Output -->
+    <div id="statusBox" class="hidden bg-slate-900 p-6 rounded-2xl border border-slate-800 text-center space-y-4">
+      <div id="loadingSpinner" class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-purple-500 border-t-transparent"></div>
+      <p id="statusText" class="text-sm text-slate-300">Connecting to render engine...</p>
+      <video id="videoPlayer" controls class="hidden w-full max-w-xs mx-auto rounded-xl border border-slate-700 shadow-2xl mt-4"></video>
+    </div>
 
-    <!-- Main Content Area -->
-    <main class="flex-1 p-6 overflow-y-auto max-w-5xl mx-auto">
-        
-        <!-- Top Bar -->
-        <div class="flex items-center justify-between mb-8 pb-4 border-b border-slate-800">
-            <div>
-                <h2 class="text-2xl font-bold">Create New Series</h2>
-                <p class="text-xs text-slate-400">Automate your faceless viral videos on auto-pilot 🚀</p>
-            </div>
-            <div class="flex gap-3">
-                <input id="serverUrl" type="text" placeholder="Render API URL (e.g. https://your-backend.onrender.com)" class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-300 w-64 focus:outline-none focus:border-indigo-500">
-            </div>
-        </div>
+  </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
-            <!-- Setup Form (Left 2 Columns) -->
-            <div class="lg:col-span-2 space-y-6">
-                
-                <!-- Step 1: Topic Selection -->
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                    <h3 class="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wider">Step 1: Custom Topic or Prompt</h3>
-                    <textarea id="promptInput" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500" placeholder="e.g. Dark psychological facts about gaming, creepy urban legends..."></textarea>
-                </div>
+  <script>
+    async function generateVideo() {
+      const rawUrl = document.getElementById('serverUrl').value.trim();
+      const prompt = document.getElementById('promptInput').value.trim();
+      const statusBox = document.getElementById('statusBox');
+      const statusText = document.getElementById('statusText');
+      const spinner = document.getElementById('loadingSpinner');
+      const videoPlayer = document.getElementById('videoPlayer');
 
-                <!-- Step 2: Narration Voice -->
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                    <h3 class="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wider">Step 2: Narration Voice</h3>
-                    <div class="grid grid-cols-2 gap-3">
-                        <label class="flex items-center gap-3 p-3 bg-slate-950 border border-indigo-500/50 rounded-xl cursor-pointer">
-                            <input type="radio" name="voice" value="adam" checked class="accent-indigo-500">
-                            <div>
-                                <p class="text-xs font-bold">Adam</p>
-                                <p class="text-[10px] text-slate-400">Male, American, Deep</p>
-                            </div>
-                        </label>
-                        <label class="flex items-center gap-3 p-3 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer hover:border-slate-700">
-                            <input type="radio" name="voice" value="nova" class="accent-indigo-500">
-                            <div>
-                                <p class="text-xs font-bold">Nova</p>
-                                <p class="text-[10px] text-slate-400">Female, American, Casual</p>
-                            </div>
-                        </label>
-                    </div>
-                </div>
+      // Clean brackets if any remain
+      const serverUrl = rawUrl.replace(/^\[|\]$/g, '');
 
-                <!-- Step 3: Art Style / Background -->
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                    <h3 class="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wider">Step 3: Background Style</h3>
-                    <div class="grid grid-cols-3 gap-3">
-                        <div class="border-2 border-indigo-500 rounded-xl overflow-hidden bg-slate-950 p-2 text-center cursor-pointer">
-                            <div class="h-16 bg-gradient-to-br from-purple-900 to-indigo-900 rounded-lg mb-2 flex items-center justify-center text-lg">🎮</div>
-                            <p class="text-xs font-bold">GTA / COD Gameplay</p>
-                        </div>
-                        <div class="border border-slate-800 rounded-xl overflow-hidden bg-slate-950 p-2 text-center cursor-pointer hover:border-slate-700">
-                            <div class="h-16 bg-gradient-to-br from-amber-900 to-red-900 rounded-lg mb-2 flex items-center justify-center text-lg">🎨</div>
-                            <p class="text-xs font-bold">Dark Anime</p>
-                        </div>
-                        <div class="border border-slate-800 rounded-xl overflow-hidden bg-slate-950 p-2 text-center cursor-pointer hover:border-slate-700">
-                            <div class="h-16 bg-gradient-to-br from-blue-900 to-slate-900 rounded-lg mb-2 flex items-center justify-center text-lg">🌧️</div>
-                            <p class="text-xs font-bold">Atmospheric</p>
-                        </div>
-                    </div>
-                </div>
+      if (!prompt) {
+        alert('Please enter a topic or prompt!');
+        return;
+      }
 
-                <!-- Generate Button -->
-                <button onclick="triggerGeneration()" id="genBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 font-bold py-4 rounded-xl transition flex justify-center items-center gap-2 shadow-lg shadow-indigo-600/20">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Video Series
-                </button>
-            </div>
+      statusBox.classList.remove('hidden');
+      spinner.classList.remove('hidden');
+      videoPlayer.classList.add('hidden');
+      statusText.textContent = 'Generating video... (First run on free tier may take 45s)';
 
-            <!-- Preview Column (Right 1 Column) -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col items-center justify-center min-h-[400px]">
-                
-                <!-- Loading State -->
-                <div id="loadingSpinner" class="hidden text-center space-y-3">
-                    <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-indigo-500 border-t-transparent"></div>
-                    <p class="text-xs font-medium text-indigo-400">Render engine stitching video & captions...</p>
-                </div>
+      try {
+        const response = await fetch(`${serverUrl}/generate-short`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: prompt })
+        });
 
-                <!-- Empty State -->
-                <div id="emptyPreview" class="text-center text-slate-500 space-y-2">
-                    <i class="fa-solid fa-film text-4xl"></i>
-                    <p class="text-xs">Your generated video preview will appear here</p>
-                </div>
+        const data = await response.json();
 
-                <!-- Active Video Result -->
-                <div id="videoContainer" class="hidden w-full space-y-4">
-                    <div class="relative aspect-[9/16] w-full max-w-[240px] mx-auto bg-black rounded-xl overflow-hidden shadow-2xl border border-slate-800">
-                        <video id="videoPlayer" controls class="w-full h-full object-cover"></video>
-                    </div>
-                    <a id="downloadLink" href="#" target="_blank" class="block w-full text-center bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-xs transition">
-                        <i class="fa-solid fa-download mr-1"></i> Download `.mp4` File
-                    </a>
-                </div>
-
-            </div>
-        </div>
-    </main>
-
-    <script>
-        async function triggerGeneration() {
-            const serverUrl = document.getElementById('serverUrl').value.trim();
-            const prompt = document.getElementById('promptInput').value.trim();
-            const spinner = document.getElementById('loadingSpinner');
-            const empty = document.getElementById('emptyPreview');
-            const videoBox = document.getElementById('videoContainer');
-            const player = document.getElementById('videoPlayer');
-            const downloadBtn = document.getElementById('downloadLink');
-
-            if (!serverUrl) {
-                alert("Please enter your Render Backend Server URL in the top right box!");
-                return;
-            }
-            if (!prompt) {
-                alert("Please enter a story or prompt first!");
-                return;
-            }
-
-            empty.classList.add('hidden');
-            videoBox.classList.add('hidden');
-            spinner.classList.remove('hidden');
-
-            try {
-                const response = await fetch(`${serverUrl}/generate-short`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: prompt })
-                });
-
-                const data = await response.json();
-                if (data.status === 'success') {
-                    const fullVideoUrl = `${serverUrl}${data.video_url}`;
-                    player.src = fullVideoUrl;
-                    downloadBtn.href = fullVideoUrl;
-                    
-                    spinner.classList.add('hidden');
-                    videoBox.classList.remove('hidden');
-                } else {
-                    alert("Error: " + data.error);
-                    spinner.classList.add('hidden');
-                    empty.classList.remove('hidden');
-                }
-            } catch (err) {
-                alert("Could not connect to Render server. Check your Server URL!");
-                spinner.classList.add('hidden');
-                empty.classList.remove('hidden');
-            }
+        if (data.status === 'success') {
+          spinner.classList.add('hidden');
+          statusText.textContent = 'Video generated successfully! 🎉';
+          videoPlayer.src = `${serverUrl}${data.video_url}`;
+          videoPlayer.classList.remove('hidden');
+          videoPlayer.play();
+        } else {
+          throw new Error(data.error || 'Failed to generate video');
         }
-    </script>
+      } catch (err) {
+        spinner.classList.add('hidden');
+        statusText.textContent = `Error: ${err.message}`;
+        alert(`Could not connect to Render server at: ${serverUrl}\n\nError: ${err.message}`);
+      }
+    }
+  </script>
 </body>
-  </html>
+</html>
