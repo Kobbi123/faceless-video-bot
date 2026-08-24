@@ -1,94 +1,78 @@
 import os
-import random
 import requests
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from gtts import gTTS
-from moviepy import VideoFileClip, AudioFileClip, TextClip, CompositeVideoClip
+from moviepy.editor import TextClip, CompositeVideoClip, AudioFileClip, ColorClip
 
 app = Flask(__name__)
-CORS(app)  # Allows your frontend UI to talk to this backend
+CORS(app, resources={r"/*": {"origins": "*"}})  # Fixes cross-origin connection issue
 
-os.makedirs("exports", exist_ok=True)
+OUTPUT_DIR = "generated_videos"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-def generate_script(prompt):
-    if len(prompt.split()) > 15:
-        return prompt
-    templates = [
-        f"Here is a crazy secret about {prompt} that almost nobody knows. Developers hide hidden easter eggs deep inside the source code.",
-        f"Did you ever wonder why {prompt} is so popular? Psychology plays a massive role in keeping people hooked."
-    ]
-    return random.choice(templates)
-
-@app.route('/health', methods=['GET'])
-def health():
-    return jsonify({"status": "running"}), 200
+@app.route('/', methods=['GET'])
+def home():
+    return jsonify({"status": "AutoShorts Backend Engine is Live!"})
 
 @app.route('/generate-short', methods=['POST'])
-def create_short():
-    data = request.json or {}
-    user_prompt = data.get("prompt", "gaming secrets")
-    
-    script_text = generate_script(user_prompt)
-    
-    # 1. Voiceover
-    audio_path = "temp_voice.mp3"
-    tts = gTTS(text=script_text, lang='en', tld='us')
-    tts.save(audio_path)
-    audio = AudioFileClip(audio_path)
-    
-    # 2. Gameplay Video
-    bg_video_path = "gameplay.mp4"
-    if not os.path.exists(bg_video_path):
-        return jsonify({"error": "gameplay.mp4 file missing on server"}), 500
+def generate_short():
+    try:
+        data = request.get_json() or {}
+        prompt = data.get('prompt', 'Mind blowing fact about space.')
+
+        # 1. Generate Audio via gTTS
+        audio_filename = "speech.mp3"
+        audio_path = os.path.join(OUTPUT_DIR, audio_filename)
+        tts = gTTS(text=prompt, lang='en', slow=False)
+        tts.save(audio_path)
+
+        # 2. Setup Audio Clip & Duration
+        audio_clip = AudioFileClip(audio_path)
+        duration = audio_clip.duration
+
+        # 3. Create Vertical Background (9:16 aspect ratio)
+        bg_clip = ColorClip(size=(720, 1280), color=(15, 23, 42), duration=duration)
+
+        # 4. Burn Text/Captions
+        txt_clip = TextClip(
+            prompt,
+            fontsize=40,
+            color='yellow',
+            font='Helvetica-Bold',
+            method='caption',
+            size=(620, None)
+        ).set_position('center').set_duration(duration)
+
+        # 5. Composite Video & Add Audio
+        final_video = CompositeVideoClip([bg_clip, txt_clip]).set_audio(audio_clip)
+
+        output_filename = "output_short.mp4"
+        output_path = os.path.join(OUTPUT_DIR, output_filename)
         
-    full_bg = VideoFileClip(bg_video_path)
-    bg_video = full_bg.loop(duration=audio.duration) if full_bg.duration < audio.duration else full_bg.subclipped(0, audio.duration)
-    
-    # 3. Dynamic Subtitles
-    words = script_text.split()
-    chunks = []
-    curr = []
-    for w in words:
-        curr.append(w)
-        if len(curr) >= 2:
-            chunks.append(" ".join(curr))
-            curr = []
-    if curr:
-        chunks.append(" ".join(curr))
+        final_video.write_videofile(
+            output_path,
+            fps=24,
+            codec='libx264',
+            audio_codec='aac',
+            verbose=False,
+            logger=None
+        )
 
-    chunk_dur = audio.duration / len(chunks)
-    text_clips = []
-    for i, chunk in enumerate(chunks):
-        txt = (TextClip(
-                    text=chunk.upper(),
-                    font_size=55,
-                    color='yellow' if i % 2 == 0 else 'cyan',
-                    stroke_color='black',
-                    stroke_width=4,
-                    method='caption',
-                    size=(bg_video.w - 100, None)
-                )
-                .with_position(('center', 0.45), relative=True)
-                .with_start(i * chunk_dur)
-                .with_duration(chunk_dur))
-        text_clips.append(txt)
+        # Clean up audio resource
+        audio_clip.close()
 
-    # 4. Render
-    final_video = CompositeVideoClip([bg_video] + text_clips).with_audio(audio)
-    out_name = f"short_{random.randint(1000,9999)}.mp4"
-    out_path = os.path.join("exports", out_name)
-    final_video.write_videofile(out_path, fps=24, codec="libx264", audio_codec="aac", preset="ultrafast")
-    
-    return jsonify({
-        "status": "success",
-        "script": script_text,
-        "video_url": f"/download/{out_name}"
-    })
+        return jsonify({
+            "status": "success",
+            "video_url": f"/download/{output_filename}"
+        })
+
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
 
 @app.route('/download/<filename>', methods=['GET'])
-def download(filename):
-    return send_file(os.path.join("exports", filename), as_attachment=True)
+def download_file(filename):
+    return send_from_directory(OUTPUT_DIR, filename)
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
