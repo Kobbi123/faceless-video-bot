@@ -3,10 +3,17 @@ import requests
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from gtts import gTTS
-from moviepy.editor import TextClip, CompositeVideoClip, AudioFileClip, ColorClip
+
+# Compatibility import for MoviePy v1 and v2
+try:
+    from moviepy.editor import TextClip, CompositeVideoClip, AudioFileClip, ColorClip
+except ImportError:
+    from moviepy.video.VideoClip import TextClip, ColorClip
+    from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
+    from moviepy.audio.io.AudioFileClip import AudioFileClip
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})  # Fixes cross-origin connection issue
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 OUTPUT_DIR = "generated_videos"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -34,18 +41,32 @@ def generate_short():
         # 3. Create Vertical Background (9:16 aspect ratio)
         bg_clip = ColorClip(size=(720, 1280), color=(15, 23, 42), duration=duration)
 
-        # 4. Burn Text/Captions
-        txt_clip = TextClip(
-            prompt,
-            fontsize=40,
-            color='yellow',
-            font='Helvetica-Bold',
-            method='caption',
-            size=(620, None)
-        ).set_position('center').set_duration(duration)
+        # 4. Burn Text/Captions (v1/v2 method fallback)
+        try:
+            txt_clip = TextClip(
+                prompt,
+                fontsize=40,
+                color='yellow',
+                font='Helvetica-Bold',
+                method='caption',
+                size=(620, None)
+            )
+            txt_clip = txt_clip.set_position('center').set_duration(duration)
+        except AttributeError:
+            txt_clip = TextClip(
+                text=prompt,
+                font_size=40,
+                color='yellow',
+                method='caption',
+                size=(620, None)
+            )
+            txt_clip = txt_clip.with_position('center').with_duration(duration)
 
         # 5. Composite Video & Add Audio
-        final_video = CompositeVideoClip([bg_clip, txt_clip]).set_audio(audio_clip)
+        try:
+            final_video = CompositeVideoClip([bg_clip, txt_clip]).set_audio(audio_clip)
+        except AttributeError:
+            final_video = CompositeVideoClip([bg_clip, txt_clip]).with_audio(audio_clip)
 
         output_filename = "output_short.mp4"
         output_path = os.path.join(OUTPUT_DIR, output_filename)
@@ -55,11 +76,9 @@ def generate_short():
             fps=24,
             codec='libx264',
             audio_codec='aac',
-            verbose=False,
             logger=None
         )
 
-        # Clean up audio resource
         audio_clip.close()
 
         return jsonify({
