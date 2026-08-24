@@ -1,11 +1,5 @@
 {
-  "cleanUrls": true,
+  "buildCommand": null,
   "outputDirectory": ".",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
-  "excludeFiles": ["main.py", "requirements.txt"]
+  "framework": null
 }
